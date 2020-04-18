@@ -4,9 +4,8 @@ import styled from 'styled-components';
 import {SkywayConfig} from './config'
 import $ from 'jquery'
 import Peer from 'skyway-js';
-import firebase from "firebase";
-import {db} from "../firebase";
-const peer = new Peer(SkywayConfig);
+import useReactRouter from 'use-react-router';
+import RoomManager from "./RoomManager";
 events.EventEmitter.defaultMaxListeners = 20
 
 let localStream = null;
@@ -14,6 +13,9 @@ let existingCall = null;
 
 
 function Skyway() {
+    const peer = new Peer(SkywayConfig);
+
+    const { history } = useReactRouter();
     const [calling, setCalling] = useState(null)
     const [room, setRoom] = useState("")
 
@@ -34,18 +36,22 @@ function Skyway() {
             navigator.mediaDevices.getUserMedia(constraints)
                 .then(function (stream) {
                     // Success
-                    document.getElementById('my-video').play().srcObject = stream;
                     localStream = stream;
                 }).catch(function (error) {
                 // Error
                 console.error('mediaDevice.getUserMedia() error:', error);
                 return;
             });
+
+            setRoom(RoomManager.getRoomId())
         }
         ,[setRoom])
 
     peer.on('open', function(){
-        document.getElementById('my-id').innerText = peer.id;
+        //document.getElementById('my-id').innerText = peer.id;
+        if(RoomManager.getRoomId()){
+            SubmitCall();
+        }
     });
 
     peer.on('error', function(err){
@@ -58,9 +64,8 @@ function Skyway() {
     peer.on('disconnected', function(){
     });
 
-    function SubmitCall(e){
-        e.preventDefault()
-        let roomName = room
+    function SubmitCall(){
+        let roomName = RoomManager.getRoomId()
         if (!roomName) {
             return;
         }
@@ -114,11 +119,13 @@ function Skyway() {
     }
 
     function setupEndCallUI() {
-        setCalling(0);
+        //history.push('/')
+        console.log("帰ろうとした")
     }
 
     function doSomething(e) {
         setRoom(e.target.value)
+        RoomManager.setRoomId(e.target.value)
     }
 
     function callForm() {
@@ -127,7 +134,15 @@ function Skyway() {
                 <>
                     <h3>Make a call</h3>
                     <form id="make-call" className="pure-form">
-                        <input type="text" placeholder="Call user id..." id="join-room" value={room} onChange={ e => doSomething(e)}/>
+                        <input
+                            type="text"
+                            placeholder="Call user id..."
+                            id="join-room"
+                            value={room}
+                            onChange={ e =>
+                                doSomething(e)
+                            }
+                        />
                         <button
                             href="#"
                             className="pure-button pure-button-success"
@@ -152,7 +167,7 @@ function Skyway() {
                             href="#"
                             className="pure-button pure-button-success"
                             type="submit"
-                            onClick={Click}
+                            onClick={() => Click}
                         >
                             End Call
                         </button>
@@ -166,9 +181,7 @@ function Skyway() {
         <div className="App">
             <div className="pure-u-1-3">
                 <h2>SkyWay Video Chat</h2>
-
-                <p>Your id: <span id="my-id">...</span></p>
-                <p>Share this id with others so they can call you.</p>
+                <p>Room id: {room}</p>
                 {callForm()}
                 {disconnectForm()}
             </div>
@@ -181,9 +194,6 @@ function Skyway() {
     );
 }
 
-const Float = styled.div`
-  display: inline-block;
-`
 
 const Video = styled.video`
   width: 40%;

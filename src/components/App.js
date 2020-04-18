@@ -1,7 +1,32 @@
-import React from 'react';
-import { Link } from 'react-router-dom'
+import React, {useEffect, useState} from 'react';
+import firebase from "firebase";
+import useReactRouter from 'use-react-router';
 
 function App() {
+  const { history } = useReactRouter();
+  const [firebaseId, setFirebaseId] = useState("")
+
+  var firebaseMyId
+
+  useEffect( ()=> {
+        firebase.auth().signInAnonymously().catch(function(error) {
+        });
+
+        firebase.auth().onAuthStateChanged(function(user) {
+          if (user) {
+            firebaseMyId = user.uid
+            setFirebaseId(user.uid)
+            console.log(user.uid)
+          } else {
+          }
+        });
+      }
+      ,[setFirebaseId])
+
+  function sentData(){
+    history.push({pathname:"/waiting", state:{firebaseId:firebaseMyId}})
+  }
+
   return (
     <div style={{
       width: '100vw',
@@ -34,7 +59,9 @@ function App() {
             ひきこもり
           </div>
         </div>
-        <Link to="waiting" style={{
+        <button
+            onClick={sentData}
+            style={{
           marginTop: '100px',
           color: '#ffffff',
           border: 'none',
@@ -45,7 +72,7 @@ function App() {
           background: 'rgba(0, 0, 0, 0.7)'
         }}>
           飲み会を始める
-        </Link>
+        </button>
         <hr color='#ffffff' style={{
           width: '100%',
           marginTop: '100px'

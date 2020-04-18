@@ -1,36 +1,39 @@
 import React, {useEffect, useState} from 'react';
 import firebase from 'firebase'
-import {SkywayConfig} from './config'
 import {db} from '../firebase/index'
-import Peer from 'skyway-js';
-const peer = new Peer(SkywayConfig);
-
+import RoomManager from "./RoomManager";
+import useReactRouter from 'use-react-router';
 
 function Matching() {
-    const [skywayId, setSkywayId] = useState(null)
-    const [firebaseId, setFirebaseId] = useState(null)
+    const { history } = useReactRouter();
+    const [firebaseId, setFirebaseId] = useState("")
 
+    var firebaseMyId
+    var calling = false
 
     useEffect( ()=> {
-            var firebaseId, skywayId
-            var calling = false
 
-            peer.on('open', function(){
-                skywayId = peer.id
-                setSkywayId(peer.id);
-            });
+            var user = firebase.auth().currentUser;
 
-            firebase.auth().signInAnonymously().catch(function(error) {
-            });
+            if (user) {
+                // User is signed in.
+                firebaseMyId = user.uid
+                setFirebaseId(user.uid)
+                console.log(user.uid)
+            } else {
+                // No user is signed in.
+                firebase.auth().signInAnonymously().catch(function(error) {
+                });
 
-            firebase.auth().onAuthStateChanged(function(user) {
-                if (user) {
-                    firebaseId = user.uid
-                    setFirebaseId(user.uid)
-                    console.log(user.uid)
-                } else {
-                }
-            });
+                firebase.auth().onAuthStateChanged(function(user) {
+                    if (user) {
+                        firebaseMyId = user.uid
+                        setFirebaseId(user.uid)
+                        console.log(user.uid)
+                    } else {
+                    }
+                });
+            }
 
             var today = firebase.firestore.Timestamp.fromDate(new Date())
 
@@ -44,17 +47,48 @@ function Matching() {
                         if(ready < today.seconds + 10 && today.seconds <= ready　 && !calling && !isCalling){
                             console.log(doc.data())
                             calling = true
+                            RoomManager.setRoomId(doc.data().roomId)
+
+                            var data = {
+                                isCalling: true,
+                                members: doc.data().members.push(firebaseMyId),
+                            }
+
+                            db.collection("matching").doc(doc.id).update(data)
+                                .then(function() {
+                                    console.log("Document successfully updated!");
+                                    history.push("/seat")
+                                })
+                                .catch(function(error) {
+                                    // The document probably doesn't exist.
+                                    console.error("Error updating document: ", error);
+                                });
                         }
                     })
 
                     if(!calling){
+
+                        const crypto = require('crypto')
+                        const S="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+                        const N=16
+                        var roomHash = Array.from(crypto.randomFillSync(new Uint8Array(N))).map((n)=>S[n%S.length]).join('')
+
+                        console.log(roomHash)
+
+                        RoomManager.setRoomId(roomHash)
+
+                        var dt = new Date()
+                        dt.setSeconds(dt.getSeconds() + 10);
+
                         var data = {
                             isCalling: false,
-                            browserId: firebaseId,
-                            members: [],
-                            ready: new Date(),
-                            skywayId: skywayId
+                            browserId: firebaseMyId,
+                            members: [firebaseMyId],
+                            ready: dt,
+                            roomId: roomHash,
                         }
+
+                        console.log(data)
 
                         db.collection("matching").add(data)
                             .then(ref => {
@@ -63,25 +97,13 @@ function Matching() {
                     }
                 })
         }
-        ,[setSkywayId])
-
-
-    peer.on('error', function(err){
-        alert(err.message);
-    });
-
-    peer.on('close', function(){
-    });
-
-    peer.on('disconnected', function(){
-    });
+        ,[setFirebaseId])
 
     return (
         <div className="App">
             <div className="pure-u-1-3">
                 <h2>Now Matching</h2>
-                <p>Your id:{skywayId}</p>
-                <p>Firebase id:{firebaseId}</p>
+                <p>FirebaseID: {firebaseId}</p>
             </div>
         </div>
     );

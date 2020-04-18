@@ -13,7 +13,9 @@
     "react-scripts": "3.4.1",
     "skyway-js": "^2.0.5",
     "skyway-multiparty": "^1.0.4",
-    "styled-components": "^5.1.0"
+    "styled-components": "^5.1.0",
+    "unstated": "^2.1.1",
+    "use-react-router": "^1.0.7"
   },
   "scripts": {
     "start": "react-scripts start",
