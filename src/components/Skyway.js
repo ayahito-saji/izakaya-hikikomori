@@ -1,17 +1,30 @@
 import React, {useState} from 'react';
 import styled from 'styled-components';
 import {SkywayConfig} from './config'
-import {db} from '../firebase/index'
+import $ from 'jquery'
 import Peer from 'skyway-js';
 const peer = new Peer(SkywayConfig);
 
+let localStream = null;
+let existingCall = null;
+
 function Skyway() {
-    const [calling, setCalling] = useState(0)
+    const [calling, setCalling] = useState(null)
 
-    let localStream = null;
-    let existingCall = null;
+    let constraints = {
+        video: {},
+        audio: true
+    };
+    constraints.video.width = {
+        min: 320,
+        max: 320
+    };
+    constraints.video.height = {
+        min: 240,
+        max: 240
+    };
 
-    navigator.mediaDevices.getUserMedia({video: true, audio: true})
+    navigator.mediaDevices.getUserMedia(constraints)
         .then(function (stream) {
             // Success
             document.getElementById('my-video').srcObject = stream;
@@ -37,20 +50,21 @@ function Skyway() {
     });
 
     function SubmitCall(e){
-        const call = peer.call(document.getElementById('callto-id').value, localStream);
+        e.preventDefault()
+        let roomName = "a"
+            //document.getElementById('join-room').val();
+        if (!roomName) {
+            return;
+        }
+
+        const call = peer.joinRoom(roomName, {mode: 'sfu', stream: localStream});
         setupCallEventHandlers(call);
-        return e.preventDefault()
     };
 
     function Click(e){
+        e.preventDefault()
         existingCall.close();
-        return e.preventDefault()
     };
-
-    peer.on('call', function(call){
-        call.answer(localStream);
-        setupCallEventHandlers(call);
-    });
 
     function setupCallEventHandlers(call){
         if (existingCall) {
@@ -58,25 +72,34 @@ function Skyway() {
         };
 
         existingCall = call;
+        console.log("UI消す")
+        setupMakeCallUI();
+        console.log("UI消えた")
+        //document.getElementById('#join-room').text(call.name);
 
         call.on('stream', function(stream){
-            addVideo(call,stream);
-            setupEndCallUI();
-            document.getElementById('their-video').innerText = call.remoteId;
+            addVideo(stream);
+        });
+
+        call.on('peerLeave', function(peerId){
+            removeVideo(peerId);
         });
 
         call.on('close', function(){
-            removeVideo(call.remoteId);
+            removeVideo();
             setupMakeCallUI();
         });
     }
 
-    function addVideo(call,stream){
-        document.getElementById('their-video').srcObject = stream;
+    function addVideo(stream){
+        const videoDom = $('<video autoplay>');
+        videoDom.attr('id',stream.peerId);
+        videoDom.get(0).srcObject = stream;
+        $('.videosContainer').append(videoDom);
     }
 
-    function removeVideo(peerId){
-        document.getElementById('their-video').srcObject = undefined;
+    function removeVideo(){
+        $('.videosContainer').empty();
     }
 
     function setupMakeCallUI(){
@@ -93,7 +116,7 @@ function Skyway() {
                 <>
                     <h3>Make a call</h3>
                     <form id="make-call" className="pure-form">
-                        <input type="text" placeholder="Call user id..." id="callto-id"/>
+                        <input type="text" placeholder="Call user id..." id="join-room"/>
                         <button
                             href="#"
                             className="pure-button pure-button-success"
@@ -113,7 +136,7 @@ function Skyway() {
             return(
                 <>
                     <form id="end-call" className="pure-form">
-                        <p>Currently in call with <span id="their-id">...</span></p>
+                        <p>Currently in call with <span id="room-id">...</span></p>
                         <button
                             href="#"
                             className="pure-button pure-button-success"
@@ -138,10 +161,9 @@ function Skyway() {
                 {callForm()}
                 {disconnectForm()}
             </div>
-            <Float id="video-container">
-                <Video id="their-video" autoPlay/>
+            <div id="js-videos-container" className="videosContainer">
                 <Video id="my-video" muted="{true}" autoPlay/>
-            </Float>
+            </div>
         </div>
     );
 }
