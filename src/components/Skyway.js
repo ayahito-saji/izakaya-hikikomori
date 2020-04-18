@@ -1,10 +1,8 @@
 import React, {useState} from 'react';
-import $ from 'jquery';
 import styled from 'styled-components';
 import {SkywayConfig} from './config'
 import Peer from 'skyway-js';
 const peer = new Peer(SkywayConfig);
-
 
 function Skyway() {
     const [calling, setCalling] = useState(0)
@@ -15,7 +13,7 @@ function Skyway() {
     navigator.mediaDevices.getUserMedia({video: true, audio: true})
         .then(function (stream) {
             // Success
-            $('#my-video').get(0).srcObject = stream;
+            document.getElementById('my-video').srcObject = stream;
             localStream = stream;
         }).catch(function (error) {
         // Error
@@ -24,7 +22,7 @@ function Skyway() {
     });
 
     peer.on('open', function(){
-        $('#my-id').text(peer.id);
+        document.getElementById('my-id').innerText = peer.id;
     });
 
     peer.on('error', function(err){
@@ -38,7 +36,7 @@ function Skyway() {
     });
 
     function SubmitCall(e){
-        const call = peer.call($('#callto-id').val(), localStream);
+        const call = peer.call(document.getElementById('callto-id').value, localStream);
         setupCallEventHandlers(call);
         return e.preventDefault()
     };
@@ -63,7 +61,7 @@ function Skyway() {
         call.on('stream', function(stream){
             addVideo(call,stream);
             setupEndCallUI();
-            $('#their-id').text(call.remoteId);
+            document.getElementById('their-video').innerText = call.remoteId;
         });
 
         call.on('close', function(){
@@ -73,11 +71,11 @@ function Skyway() {
     }
 
     function addVideo(call,stream){
-        $('#their-video').get(0).srcObject = stream;
+        document.getElementById('their-video').srcObject = stream;
     }
 
     function removeVideo(peerId){
-        $('#their-video').get(0).srcObject = undefined;
+        document.getElementById('their-video').srcObject = undefined;
     }
 
     function setupMakeCallUI(){
@@ -141,7 +139,7 @@ function Skyway() {
             </div>
             <Float id="video-container">
                 <Video id="their-video" autoPlay/>
-                <Video id="my-video" muted="true" autoPlay/>
+                <Video id="my-video" muted="{true}" autoPlay/>
             </Float>
         </div>
     );
