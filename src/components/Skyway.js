@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import styled from 'styled-components';
 import {SkywayConfig} from './config'
+import {db} from '../firebase/index'
 import Peer from 'skyway-js';
 const peer = new Peer(SkywayConfig);
 
