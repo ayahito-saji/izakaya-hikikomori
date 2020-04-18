@@ -1,15 +1,21 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
+import events from "events"
 import styled from 'styled-components';
 import {SkywayConfig} from './config'
 import $ from 'jquery'
 import Peer from 'skyway-js';
+import firebase from "firebase";
+import {db} from "../firebase";
 const peer = new Peer(SkywayConfig);
+events.EventEmitter.defaultMaxListeners = 20
 
 let localStream = null;
 let existingCall = null;
 
+
 function Skyway() {
     const [calling, setCalling] = useState(null)
+    const [room, setRoom] = useState("")
 
     let constraints = {
         video: {},
@@ -24,16 +30,19 @@ function Skyway() {
         max: 240
     };
 
-    navigator.mediaDevices.getUserMedia(constraints)
-        .then(function (stream) {
-            // Success
-            document.getElementById('my-video').srcObject = stream;
-            localStream = stream;
-        }).catch(function (error) {
-        // Error
-        console.error('mediaDevice.getUserMedia() error:', error);
-        return;
-    });
+    useEffect( ()=> {
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(function (stream) {
+                    // Success
+                    document.getElementById('my-video').play().srcObject = stream;
+                    localStream = stream;
+                }).catch(function (error) {
+                // Error
+                console.error('mediaDevice.getUserMedia() error:', error);
+                return;
+            });
+        }
+        ,[setRoom])
 
     peer.on('open', function(){
         document.getElementById('my-id').innerText = peer.id;
@@ -51,19 +60,19 @@ function Skyway() {
 
     function SubmitCall(e){
         e.preventDefault()
-        let roomName = "a"
-            //document.getElementById('join-room').val();
+        let roomName = room
         if (!roomName) {
             return;
         }
 
-        const call = peer.joinRoom(roomName, {mode: 'sfu', stream: localStream});
+        const call = peer.joinRoom(roomName, {mode: 'mesh', stream: localStream});
         setupCallEventHandlers(call);
     };
 
     function Click(e){
         e.preventDefault()
         existingCall.close();
+        existingCall = null
     };
 
     function setupCallEventHandlers(call){
@@ -72,9 +81,7 @@ function Skyway() {
         };
 
         existingCall = call;
-        console.log("UI消す")
         setupMakeCallUI();
-        console.log("UI消えた")
         //document.getElementById('#join-room').text(call.name);
 
         call.on('stream', function(stream){
@@ -82,17 +89,17 @@ function Skyway() {
         });
 
         call.on('peerLeave', function(peerId){
-            removeVideo(peerId);
+            removeVideo();
         });
 
         call.on('close', function(){
             removeVideo();
-            setupMakeCallUI();
+            setupEndCallUI();
         });
     }
 
     function addVideo(stream){
-        const videoDom = $('<video autoplay>');
+        const videoDom = $('<video autoplay playsinline>');
         videoDom.attr('id',stream.peerId);
         videoDom.get(0).srcObject = stream;
         $('.videosContainer').append(videoDom);
@@ -110,13 +117,17 @@ function Skyway() {
         setCalling(0);
     }
 
+    function doSomething(e) {
+        setRoom(e.target.value)
+    }
+
     function callForm() {
         if(!calling){
             return(
                 <>
                     <h3>Make a call</h3>
                     <form id="make-call" className="pure-form">
-                        <input type="text" placeholder="Call user id..." id="join-room"/>
+                        <input type="text" placeholder="Call user id..." id="join-room" value={room} onChange={ e => doSomething(e)}/>
                         <button
                             href="#"
                             className="pure-button pure-button-success"
@@ -141,8 +152,8 @@ function Skyway() {
                             href="#"
                             className="pure-button pure-button-success"
                             type="submit"
-                            onClick={Click
-                            }>
+                            onClick={Click}
+                        >
                             End Call
                         </button>
                     </form>
@@ -161,8 +172,10 @@ function Skyway() {
                 {callForm()}
                 {disconnectForm()}
             </div>
-            <div id="js-videos-container" className="videosContainer">
-                <Video id="my-video" muted="{true}" autoPlay/>
+            <div id="js-videos-container" className="videos-container">
+                <Video id="my-video" muted="{true}" autoPlay playsinline/>
+                <div id="js-videos-container" className="videosContainer">
+                </div>
             </div>
         </div>
     );
