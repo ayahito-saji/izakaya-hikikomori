@@ -4,12 +4,18 @@ import {db} from '../firebase/index'
 import RoomManager from "./RoomManager";
 import useReactRouter from 'use-react-router';
 
+function wait15(){
+    console.log("15秒まった")
+}
+
 function Matching() {
     const { history } = useReactRouter();
     const [firebaseId, setFirebaseId] = useState("")
+    const [message, setMessage] = useState("")
 
     var firebaseMyId
     var calling = false
+
 
     useEffect( ()=> {
 
@@ -92,12 +98,18 @@ function Matching() {
 
                         db.collection("matching").add(data)
                             .then(ref => {
-                                db.collection("matching").doc(ref.id)
+                                var unsubscribe = db.collection("matching").doc(ref.id)
                                     .onSnapshot(function(doc) {
                                         if(doc.data().isCalling){
                                             console.log("Current data: ", doc.data());
                                         }
                                     });
+
+                                setTimeout(function () {
+                                    unsubscribe();
+                                    setMessage("相手が見つかりませんでした")
+                                }, 15000);
+
                             })
 
                     }
@@ -105,11 +117,13 @@ function Matching() {
         }
         ,[setFirebaseId])
 
+
     return (
         <div className="App">
             <div className="pure-u-1-3">
                 <h2>Now Matching</h2>
                 <p>FirebaseID: {firebaseId}</p>
+                <p>{message}</p>
             </div>
         </div>
     );
