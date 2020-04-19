@@ -44,7 +44,7 @@ function Matching() {
                         var ready = doc.data().ready.seconds
                         var isCalling = doc.data().isCalling
 
-                        if(ready < today.seconds + 10 && today.seconds <= ready　 && !calling && !isCalling){
+                        if(ready < today.seconds + 15 && today.seconds <= ready　 && !calling && !isCalling){
                             console.log(doc.data())
                             calling = true
                             RoomManager.setRoomId(doc.data().roomId)
@@ -78,7 +78,7 @@ function Matching() {
                         RoomManager.setRoomId(roomHash)
 
                         var dt = new Date()
-                        dt.setSeconds(dt.getSeconds() + 10);
+                        dt.setSeconds(dt.getSeconds() + 15);
 
                         var data = {
                             isCalling: false,
@@ -92,8 +92,14 @@ function Matching() {
 
                         db.collection("matching").add(data)
                             .then(ref => {
-                                console.log(ref.id)
+                                db.collection("matching").doc(ref.id)
+                                    .onSnapshot(function(doc) {
+                                        if(doc.data().isCalling){
+                                            console.log("Current data: ", doc.data());
+                                        }
+                                    });
                             })
+
                     }
                 })
         }
