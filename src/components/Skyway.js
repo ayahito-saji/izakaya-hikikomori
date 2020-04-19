@@ -6,6 +6,7 @@ import $ from 'jquery'
 import Peer from 'skyway-js';
 import useReactRouter from 'use-react-router';
 import RoomManager from "./RoomManager";
+const peer = new Peer(SkywayConfig);
 events.EventEmitter.defaultMaxListeners = 20
 
 let localStream = null;
@@ -13,7 +14,7 @@ let existingCall = null;
 
 
 function Skyway() {
-    const peer = new Peer(SkywayConfig);
+    var roomId
 
     const { history } = useReactRouter();
     const [calling, setCalling] = useState(null)
@@ -33,22 +34,26 @@ function Skyway() {
     };
 
     useEffect( ()=> {
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function (stream) {
-                    // Success
-                    localStream = stream;
-                }).catch(function (error) {
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(function (stream) {
+                // Success
+                localStream = stream;
+
+                setRoom(RoomManager.getRoomId())
+                roomId = RoomManager.getRoomId()
+                console.log(roomId)
+                if(roomId) {
+                    SubmitCall()
+                }
+            }).catch(function (error) {
                 // Error
                 console.error('mediaDevice.getUserMedia() error:', error);
                 return;
-            });
-
-            setRoom(RoomManager.getRoomId())
-        }
-        ,[setRoom])
+        });
+    }
+    ,[setRoom])
 
     peer.on('open', function(){
-        //document.getElementById('my-id').innerText = peer.id;
         if(RoomManager.getRoomId()){
             SubmitCall();
         }
@@ -65,20 +70,20 @@ function Skyway() {
     });
 
     function SubmitCall(){
-        let roomName = RoomManager.getRoomId()
-        if (!roomName) {
-            return;
+        if(room || roomId) {
+            let roomName = room
+            if (!roomName) {
+                roomName = roomId
+                if (!roomName) {
+                    return;
+                }
+            }
+
+            const call = peer.joinRoom(roomName, {mode: 'mesh', stream: localStream});
+            setupCallEventHandlers(call);
         }
-
-        const call = peer.joinRoom(roomName, {mode: 'mesh', stream: localStream});
-        setupCallEventHandlers(call);
     };
 
-    function Click(e){
-        e.preventDefault()
-        existingCall.close();
-        existingCall = null
-    };
 
     function setupCallEventHandlers(call){
         if (existingCall) {
@@ -87,7 +92,6 @@ function Skyway() {
 
         existingCall = call;
         setupMakeCallUI();
-        //document.getElementById('#join-room').text(call.name);
 
         call.on('stream', function(stream){
             addVideo(stream);
@@ -99,7 +103,6 @@ function Skyway() {
 
         call.on('close', function(){
             removeVideo();
-            setupEndCallUI();
         });
     }
 
@@ -118,11 +121,6 @@ function Skyway() {
         setCalling(1);
     }
 
-    function setupEndCallUI() {
-        //history.push('/')
-        console.log("帰ろうとした")
-    }
-
     function doSomething(e) {
         setRoom(e.target.value)
         RoomManager.setRoomId(e.target.value)
@@ -132,7 +130,7 @@ function Skyway() {
         if(!calling){
             return(
                 <>
-                    <h3>Make a call</h3>
+                    <h3>Join Room!</h3>
                     <form id="make-call" className="pure-form">
                         <input
                             type="text"
@@ -167,7 +165,7 @@ function Skyway() {
                             href="#"
                             className="pure-button pure-button-success"
                             type="submit"
-                            onClick={() => Click}
+                            onClick={() =>　{existingCall.close();existingCall = null;history.push('/')}}
                         >
                             End Call
                         </button>
