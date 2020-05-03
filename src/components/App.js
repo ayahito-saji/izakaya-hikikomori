@@ -3,23 +3,12 @@ import firebase from "firebase";
 import {Link} from "react-router-dom";
 
 function App() {
-  const [firebaseId, setFirebaseId] = useState("")
   const [canConnect, setCanConnect] = useState(0)
 
-  var firebaseMyId
 
-  useEffect( ()=> {
+    useEffect( ()=> {
         firebase.auth().signInAnonymously().catch(function(error) {
         });
-
-        firebase.auth().onAuthStateChanged(function(user) {
-          if (user) {
-            firebaseMyId = user.uid
-            setFirebaseId(user.uid)
-            console.log(user.uid)
-          } else {
-          }
-        })
 
         var today = new Date()
         if(today.getHours() < 23 && today.getHours()>= 5 ){
@@ -27,7 +16,7 @@ function App() {
         }
 
       }
-      ,[setFirebaseId])
+      ,[setCanConnect])
 
   function button(){
     if(canConnect){

@@ -9,7 +9,6 @@ events.EventEmitter.defaultMaxListeners = 20
 
 function Matching() {
     const { history } = useReactRouter();
-    const [firebaseId, setFirebaseId] = useState("")
     const [message, setMessage] = useState("マッチング相手を探しています")
     const [canConnect, setCanConnect] = useState(0)
 
@@ -25,8 +24,6 @@ function Matching() {
             if (user) {
                 // User is signed in.
                 firebaseMyId = user.uid
-                setFirebaseId(user.uid)
-                console.log(user.uid)
             } else {
                 // No user is signed in.
                 await firebase.auth().signInAnonymously().catch(function(error) {
@@ -35,9 +32,6 @@ function Matching() {
                 await firebase.auth().onAuthStateChanged(function(user) {
                     if (user) {
                         firebaseMyId = user.uid
-                        setFirebaseId(user.uid)
-                        console.log(user.uid)
-                    } else {
                     }
                 });
             }
@@ -57,13 +51,7 @@ function Matching() {
                         var isCalling = doc.data().isCalling
                         var members = doc.data().members
 
-                        console.log(ready < today.seconds + 15)
-                        console.log(today.seconds <= ready)
-                        console.log(doc.data().browserId !== firebaseMyId)
-                        console.log("docのは"+doc.data().browserId+"自分のは"+firebaseMyId)
-
                         if(ready < today.seconds + 15 && today.seconds <= ready && !calling && !isCalling && doc.data().browserId !== firebaseMyId ){
-                            console.log("待っとるから部屋作る"+doc.data())
                             calling = true
                             RoomManager.setRoomId(doc.data().roomId)
 
@@ -81,7 +69,6 @@ function Matching() {
 
                             db.collection("matching").doc(doc.id).update(data)
                                 .then(function() {
-                                    console.log("Document successfully updated!");
                                     db.collection("matching").add(myData).then(
                                         history.push("/seat")
                                     )
@@ -92,15 +79,14 @@ function Matching() {
                                 });
 
                         }else if(!calling && isCalling && members < 3　&& doc.data().browserId !== firebaseMyId){
-                            console.log("グループへ参加"+doc.data())
                             calling = true
                             RoomManager.setRoomId(doc.data().roomId)
 
-                            var data = {
+                            data = {
                                 members: 3,
                             }
 
-                            var myData = {
+                            myData = {
                                 isCalling: true,
                                 browserId: firebaseMyId,
                                 members: 3,
@@ -136,14 +122,11 @@ function Matching() {
                     })
 
                     if(!calling){
-                        console.log("部屋ないから待つ")
 
                         const crypto = require('crypto')
                         const S="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
                         const N=16
                         var roomHash = Array.from(crypto.randomFillSync(new Uint8Array(N))).map((n)=>S[n%S.length]).join('')
-
-                        console.log(roomHash)
 
                         RoomManager.setRoomId(roomHash)
 
@@ -158,10 +141,7 @@ function Matching() {
                             roomId: roomHash,
                         }
 
-                        console.log(data)
-
                         if(myId){
-                            console.log("すでにあるなあ")
 
                             await db.collection("matching").doc(myId).update(data)
                                 .then(ref => {
@@ -182,7 +162,6 @@ function Matching() {
                             }, 17000);
 
                         }else{
-                            console.log("まだないなあ")
 
                             db.collection("matching").add(data)
                                 .then(ref => {
@@ -211,7 +190,7 @@ function Matching() {
 
         fn()
         }
-        ,[setFirebaseId])
+        ,[setCanConnect])
 
     function button(){
         if(canConnect){

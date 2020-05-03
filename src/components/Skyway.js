@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import events from "events"
-import styled from 'styled-components';
 import {SkywayConfig} from './config'
 import $ from 'jquery'
 import Peer from 'skyway-js';
@@ -200,8 +199,6 @@ function Skyway() {
                             existingCall = null;
                             localStream.getTracks().forEach(track => track.stop());
 
-                            console.log(docId)
-
                             var members = 0
 
                             await db.collection("matching").doc(docId).get().then(function(doc) {
@@ -273,9 +270,5 @@ function Skyway() {
         </div>
     );
 }
-
-const Video = styled.video`
-  width: 40%;
-`
 
 export default Skyway;
