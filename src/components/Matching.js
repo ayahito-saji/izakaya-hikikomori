@@ -213,11 +213,27 @@ function Matching() {
 
     return (
         <div className="App">
-            <div className="pure-u-1-3">
-                <h2>Now Matching</h2>
-                <p>FirebaseID: {firebaseId}</p>
+            <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: "100vh",
+                width: "100vw",
+                color: "#ffffff",
+                backgroundImage: 'url(/background2.jpg)',
+                backgroundSize: 'cover'
+            }}>
                 <p>{message}</p>
-                <Link to="/">戻る</Link>
+                <Link to="/" style={{
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '24px',
+                    borderRadius: '48px',
+                    fontSize: '16px',
+                    textDecoration: 'none',
+                    background: 'rgba(0, 0, 0, 0.7)'
+                }}>戻る</Link>
             </div>
         </div>
     );

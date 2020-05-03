@@ -29,7 +29,20 @@ constraints.video.height = {
 };
 
 function addVideo(stream){
-    const videoDom = $('<video autoplay playsinline>');
+
+    let width = 0, height = 0
+    const screenWidth = window.innerWidth, screenHeight = window.innerHeight
+
+    if (screenWidth >= screenHeight) {
+      if (screenWidth < 480) width = screenWidth
+      else width = screenWidth / 2
+      height = width * 0.75
+    } else {
+      width = screenWidth
+      height = width * 0.75
+    }
+
+    const videoDom = $('<video autoplay playsinline width="'+width+'px" height="'+height+'px" style="border-radius: 4px;display: block;">');
     videoDom.attr('id',stream.peerId);
     videoDom.get(0).srcObject = stream;
     $('.videosContainer').append(videoDom);
@@ -162,117 +175,101 @@ function Skyway() {
         });
     }
 
-
     function setupMakeCallUI(){
         setCalling(1);
-    }
-
-    function doSomething(e) {
-        setRoom(e.target.value)
-        RoomManager.setRoomId(e.target.value)
-    }
-
-    function callForm() {
-        if(!calling){
-            return(
-                <>
-                    <h3>Join Room!</h3>
-                    <form id="make-call" className="pure-form">
-                        <input
-                            type="text"
-                            placeholder="Call user id..."
-                            id="join-room"
-                            value={room}
-                            onChange={ e =>
-                                doSomething(e)
-                            }
-                        />
-                        <button
-                            href="#"
-                            className="pure-button pure-button-success"
-                            type="submit"
-                            onClick={SubmitCall}
-                        >
-                            Call
-                        </button>
-                    </form>
-                </>
-            )
-        }
     }
 
     function disconnectForm() {
         if(calling){
             return(
                 <>
-                    <form id="end-call" className="pure-form">
-                        <p>Currently in call with <span id="room-id">...</span></p>
-                        <button
-                            href="#"
-                            className="pure-button pure-button-success"
-                            type="submit"
-                            onClick={async (e) =>　{
-                                e.preventDefault()
-                                existingCall.close();
-                                existingCall = null;
-                                localStream.getTracks().forEach(track => track.stop());
+                    <a
+                        href="#"
+                        style={{
+                          color: '#ffffff',
+                          border: 'none',
+                          padding: '24px',
+                          borderRadius: '48px',
+                          fontSize: '16px',
+                          textDecoration: 'none',
+                          background: 'rgba(0, 0, 0, 0.7)'
+                        }}
+                        onClick={async (e) =>　{
+                            e.preventDefault()
+                            existingCall.close();
+                            existingCall = null;
+                            localStream.getTracks().forEach(track => track.stop());
 
-                                console.log(docId)
+                            console.log(docId)
 
-                                var members = 0
+                            var members = 0
 
-                                await db.collection("matching").doc(docId).get().then(function(doc) {
-                                    members = doc.data().members
+                            await db.collection("matching").doc(docId).get().then(function(doc) {
+                                members = doc.data().members
 
-                                }).catch(function(error) {
-                                    console.error("Error removing document: ", error);
-                                });
+                            }).catch(function(error) {
+                                console.error("Error removing document: ", error);
+                            });
 
-                                var data = {
-                                    members: members-1,
-                                }
+                            var data = {
+                                members: members-1,
+                            }
 
-                                await db.collection("matching").where("roomId", "==", roomId).get().then(
-                                    function (docs) {
-                                        docs.forEach(function (doc) {
-                                            db.collection("matching").doc(doc.id).update(data)
-                                                .then(function() {
-                                                    console.log("Document successfully updated!");
-                                                })
-                                                .catch(function(error) {
-                                                    // The document probably doesn't exist.
-                                                    console.error("Error updating document: ", error);
-                                                });
-                                        })
+                            await db.collection("matching").where("roomId", "==", roomId).get().then(
+                                function (docs) {
+                                    docs.forEach(function (doc) {
+                                        db.collection("matching").doc(doc.id).update(data)
+                                            .then(function() {
+                                                console.log("Document successfully updated!");
+                                            })
+                                            .catch(function(error) {
+                                                // The document probably doesn't exist.
+                                                console.error("Error updating document: ", error);
+                                            });
                                     })
+                                })
 
-                                await db.collection("matching").doc(docId).delete().then(function() {
-                                    console.log("Document successfully deleted!");
-                                }).catch(function(error) {
-                                    console.error("Error removing document: ", error);
-                                });
-                                history.push('/')
-                            }}
-                        >
-                            End Call
-                        </button>
-                    </form>
+                            await db.collection("matching").doc(docId).delete().then(function() {
+                                console.log("Document successfully deleted!");
+                            }).catch(function(error) {
+                                console.error("Error removing document: ", error);
+                            });
+                            history.push('/')
+                        }}
+                    >
+                        飲み会から退出する
+                    </a>
                 </>
             )
         }
     }
 
     return (
-        <div className="App">
-            <div className="pure-u-1-3">
-                <h2>SkyWay Video Chat</h2>
-                <p>Room id: {room}</p>
-                {callForm()}
-                {disconnectForm()}
-            </div>
-            <div id="js-videos-container" className="videos-container">
-                <div id="js-videos-container" className="videosContainer"/>
-            </div>
+        <div className="App" style={{
+          display: "flex",
+          height: "100vh",
+          width: "100vw",
+          flexDirection: "column",
+          backgroundImage: 'url(/background_room.jpg)',
+          backgroundSize: 'cover'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexGrow: 1,
+          }}>
+            <div id="js-videos-container" className="videosContainer" style={{ padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap'}}/>
+          </div>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexGrow: 0,
+            padding: '32px 0'
+          }}>
+            {disconnectForm()}
+          </div>
         </div>
     );
 }
