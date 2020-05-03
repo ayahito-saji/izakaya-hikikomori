@@ -10,7 +10,8 @@ events.EventEmitter.defaultMaxListeners = 20
 function Matching() {
     const { history } = useReactRouter();
     const [firebaseId, setFirebaseId] = useState("")
-    const [message, setMessage] = useState("")
+    const [message, setMessage] = useState("マッチング相手を探しています")
+    const [canConnect, setCanConnect] = useState(0)
 
     var firebaseMyId
     var calling = false
@@ -177,6 +178,7 @@ function Matching() {
                             setTimeout(function () {
                                 unsubscribe();
                                 setMessage("相手が見つかりませんでした")
+                                setCanConnect(1)
                             }, 17000);
 
                         }else{
@@ -195,7 +197,8 @@ function Matching() {
                                     setTimeout(function () {
                                         unsubscribe();
                                         setMessage("相手が見つかりませんでした")
-                                    }, 15000);
+                                        setCanConnect(1)
+                                    }, 17000);
 
                                 })
                         }
@@ -210,6 +213,30 @@ function Matching() {
         }
         ,[setFirebaseId])
 
+    function button(){
+        if(canConnect){
+            return(
+                <Link
+                    to="/waiting"
+                    style={{
+                        marginTop: '100px',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '24px',
+                        borderRadius: '48px',
+                        fontSize: '16px',
+                        textDecoration: 'none',
+                        background: 'rgba(0, 0, 0, 0.7)'
+                    }}>
+                    入り口へ戻る
+                </Link>
+            )
+        }
+        return(
+            <>
+            </>
+        )
+    }
 
     return (
         <div className="App">
@@ -225,15 +252,7 @@ function Matching() {
                 backgroundSize: 'cover'
             }}>
                 <p>{message}</p>
-                <Link to="/" style={{
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '24px',
-                    borderRadius: '48px',
-                    fontSize: '16px',
-                    textDecoration: 'none',
-                    background: 'rgba(0, 0, 0, 0.7)'
-                }}>戻る</Link>
+                {button()}
             </div>
         </div>
     );

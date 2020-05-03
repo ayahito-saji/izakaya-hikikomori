@@ -28,6 +28,7 @@ function App() {
 
       }
       ,[setFirebaseId])
+
   function button(){
     if(canConnect){
       return(
