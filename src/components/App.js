@@ -11,7 +11,7 @@ function App() {
         });
 
         var today = new Date()
-        if(today.getHours() < 23 && today.getHours()>= 5 ){
+        if(today.getHours() < 23 && today.getHours()>= 19 ){
           setCanConnect(1)
         }
 
