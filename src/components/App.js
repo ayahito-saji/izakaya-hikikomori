@@ -4,6 +4,7 @@ import {Link} from "react-router-dom";
 
 function App() {
   const [firebaseId, setFirebaseId] = useState("")
+  const [canConnect, setCanConnect] = useState(0)
 
   var firebaseMyId
 
@@ -18,10 +19,50 @@ function App() {
             console.log(user.uid)
           } else {
           }
-        });
+        })
+
+        var today = new Date()
+        if(today.getHours() < 23 && today.getHours()>= 5 ){
+          setCanConnect(1)
+        }
+
       }
       ,[setFirebaseId])
-
+  function button(){
+    if(canConnect){
+      return(
+          <Link
+              to="/waiting"
+              style={{
+                marginTop: '100px',
+                color: '#ffffff',
+                border: 'none',
+                padding: '24px',
+                borderRadius: '48px',
+                fontSize: '16px',
+                textDecoration: 'none',
+                background: 'rgba(0, 0, 0, 0.7)'
+              }}>
+            飲み会を始める
+          </Link>
+      )
+    }
+    return(
+        <p
+            style={{
+              marginTop: '100px',
+              color: '#ffffff',
+              border: 'none',
+              padding: '24px',
+              borderRadius: '48px',
+              fontSize: '16px',
+              textDecoration: 'none',
+              background: 'rgba(0, 0, 0, 0.7)'
+            }}>
+          開店をお待ちください
+        </p>
+    )
+  }
 
   return (
     <div style={{
@@ -55,20 +96,7 @@ function App() {
             ひきこもり
           </div>
         </div>
-        <Link
-            to="/waiting"
-            style={{
-          marginTop: '100px',
-          color: '#ffffff',
-          border: 'none',
-          padding: '24px',
-          borderRadius: '48px',
-          fontSize: '16px',
-          textDecoration: 'none',
-          background: 'rgba(0, 0, 0, 0.7)'
-        }}>
-          飲み会を始める
-        </Link>
+        {button()}
         <hr color='#ffffff' style={{
           width: '100%',
           marginTop: '100px'
