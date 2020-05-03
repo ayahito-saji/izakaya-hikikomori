@@ -1,11 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './components/App';
+import Skyway from './components/Skyway'
+import { BrowserRouter as Router, Route } from "react-router-dom";
 import * as serviceWorker from './serviceWorker';
+import Matching from "./components/Matching";
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <Router>
+        <Route exact path="/" component={App}/>
+        <Route exact path="/waiting" component={Matching}/>
+        <Route exact path="/seat" component={Skyway}/>
+    </Router>
   </React.StrictMode>,
   document.getElementById('root')
 );
