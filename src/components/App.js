@@ -1,9 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import firebase from "firebase";
-import useReactRouter from 'use-react-router';
+import {Link} from "react-router-dom";
 
 function App() {
-  const { history } = useReactRouter();
   const [firebaseId, setFirebaseId] = useState("")
 
   var firebaseMyId
@@ -23,9 +22,6 @@ function App() {
       }
       ,[setFirebaseId])
 
-  function sentData(){
-    history.push({pathname:"/waiting", state:{firebaseId:firebaseMyId}})
-  }
 
   return (
     <div style={{
@@ -59,8 +55,8 @@ function App() {
             ひきこもり
           </div>
         </div>
-        <button
-            onClick={sentData}
+        <Link
+            to="/waiting"
             style={{
           marginTop: '100px',
           color: '#ffffff',
@@ -72,7 +68,7 @@ function App() {
           background: 'rgba(0, 0, 0, 0.7)'
         }}>
           飲み会を始める
-        </button>
+        </Link>
         <hr color='#ffffff' style={{
           width: '100%',
           marginTop: '100px'

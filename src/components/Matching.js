@@ -1,12 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import firebase from 'firebase'
+import events from "events"
 import {db} from '../firebase/index'
 import RoomManager from "./RoomManager";
 import useReactRouter from 'use-react-router';
-
-function wait15(){
-    console.log("15秒まった")
-}
+import {Link} from "react-router-dom";
+events.EventEmitter.defaultMaxListeners = 20
 
 function Matching() {
     const { history } = useReactRouter();
@@ -19,6 +18,7 @@ function Matching() {
 
     useEffect( ()=> {
 
+        const fn = async () => {
             var user = firebase.auth().currentUser;
 
             if (user) {
@@ -28,10 +28,10 @@ function Matching() {
                 console.log(user.uid)
             } else {
                 // No user is signed in.
-                firebase.auth().signInAnonymously().catch(function(error) {
+                await firebase.auth().signInAnonymously().catch(function(error) {
                 });
 
-                firebase.auth().onAuthStateChanged(function(user) {
+                await firebase.auth().onAuthStateChanged(function(user) {
                     if (user) {
                         firebaseMyId = user.uid
                         setFirebaseId(user.uid)
@@ -42,25 +42,87 @@ function Matching() {
             }
 
             var today = firebase.firestore.Timestamp.fromDate(new Date())
+            var myId = ""
 
-            db.collection("matching").get()
-                .then( docs => {
+            await db.collection("matching").get()
+                .then( async docs => {
                     docs.forEach(doc => {
+
+                        if(doc.data().browserId === firebaseMyId){
+                            myId = doc.id
+                        }
 
                         var ready = doc.data().ready.seconds
                         var isCalling = doc.data().isCalling
+                        var members = doc.data().members
 
-                        if(ready < today.seconds + 15 && today.seconds <= ready　 && !calling && !isCalling){
-                            console.log(doc.data())
+                        console.log(ready < today.seconds + 15)
+                        console.log(today.seconds <= ready)
+                        console.log(doc.data().browserId !== firebaseMyId)
+                        console.log("docのは"+doc.data().browserId+"自分のは"+firebaseMyId)
+
+                        if(ready < today.seconds + 15 && today.seconds <= ready && !calling && !isCalling && doc.data().browserId !== firebaseMyId ){
+                            console.log("待っとるから部屋作る"+doc.data())
                             calling = true
                             RoomManager.setRoomId(doc.data().roomId)
 
                             var data = {
                                 isCalling: true,
-                                members: doc.data().members.push(firebaseMyId),
+                                members: 2,
+                            }
+                            var myData = {
+                                isCalling: true,
+                                browserId: firebaseMyId,
+                                members: 2,
+                                ready: doc.data().ready,
+                                roomId: doc.data().roomId,
                             }
 
                             db.collection("matching").doc(doc.id).update(data)
+                                .then(function() {
+                                    console.log("Document successfully updated!");
+                                    db.collection("matching").add(myData).then(
+                                        history.push("/seat")
+                                    )
+                                })
+                                .catch(function(error) {
+                                    // The document probably doesn't exist.
+                                    console.error("Error updating document: ", error);
+                                });
+
+                        }else if(!calling && isCalling && members < 3　&& doc.data().browserId !== firebaseMyId){
+                            console.log("グループへ参加"+doc.data())
+                            calling = true
+                            RoomManager.setRoomId(doc.data().roomId)
+
+                            var data = {
+                                members: 3,
+                            }
+
+                            var myData = {
+                                isCalling: true,
+                                browserId: firebaseMyId,
+                                members: 3,
+                                ready: doc.data().ready,
+                                roomId: doc.data().roomId,
+                            }
+
+                            db.collection("matching").where("roomId", "==", doc.data().roomId).get().then(
+                                function (docs) {
+                                    docs.forEach(function (doc) {
+                                        db.collection("matching").doc(doc.id).update(data)
+                                            .then(function() {
+                                                console.log("Document successfully updated!");
+                                            })
+                                            .catch(function(error) {
+                                                // The document probably doesn't exist.
+                                                console.error("Error updating document: ", error);
+                                            });
+                                    })
+                                }
+                            )
+
+                            db.collection("matching").add(myData)
                                 .then(function() {
                                     console.log("Document successfully updated!");
                                     history.push("/seat")
@@ -73,6 +135,7 @@ function Matching() {
                     })
 
                     if(!calling){
+                        console.log("部屋ないから待つ")
 
                         const crypto = require('crypto')
                         const S="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -89,31 +152,61 @@ function Matching() {
                         var data = {
                             isCalling: false,
                             browserId: firebaseMyId,
-                            members: [firebaseMyId],
+                            members: 1,
                             ready: dt,
                             roomId: roomHash,
                         }
 
                         console.log(data)
 
-                        db.collection("matching").add(data)
-                            .then(ref => {
-                                var unsubscribe = db.collection("matching").doc(ref.id)
-                                    .onSnapshot(function(doc) {
-                                        if(doc.data().isCalling){
-                                            console.log("Current data: ", doc.data());
-                                        }
-                                    });
+                        if(myId){
+                            console.log("すでにあるなあ")
 
-                                setTimeout(function () {
-                                    unsubscribe();
-                                    setMessage("相手が見つかりませんでした")
-                                }, 15000);
+                            await db.collection("matching").doc(myId).update(data)
+                                .then(ref => {
+                                })
 
-                            })
+                            var unsubscribe = await db.collection("matching").doc(myId)
+                                .onSnapshot(function(doc) {
+                                    if(doc.data().isCalling && doc.data().members !== 1){
+                                        unsubscribe();
+                                        history.push("/seat")
+                                    }
+                                });
+
+                            setTimeout(function () {
+                                unsubscribe();
+                                setMessage("相手が見つかりませんでした")
+                            }, 17000);
+
+                        }else{
+                            console.log("まだないなあ")
+
+                            db.collection("matching").add(data)
+                                .then(ref => {
+                                    var unsubscribe = db.collection("matching").doc(ref.id)
+                                        .onSnapshot(function(doc) {
+                                            if(doc.data().isCalling){
+                                                unsubscribe();
+                                                history.push("/seat")
+                                            }
+                                        });
+
+                                    setTimeout(function () {
+                                        unsubscribe();
+                                        setMessage("相手が見つかりませんでした")
+                                    }, 15000);
+
+                                })
+                        }
+
+
 
                     }
                 })
+        }
+
+        fn()
         }
         ,[setFirebaseId])
 
@@ -124,6 +217,7 @@ function Matching() {
                 <h2>Now Matching</h2>
                 <p>FirebaseID: {firebaseId}</p>
                 <p>{message}</p>
+                <Link to="/">戻る</Link>
             </div>
         </div>
     );

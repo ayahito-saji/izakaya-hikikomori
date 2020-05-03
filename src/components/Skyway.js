@@ -6,50 +6,104 @@ import $ from 'jquery'
 import Peer from 'skyway-js';
 import useReactRouter from 'use-react-router';
 import RoomManager from "./RoomManager";
+import {db} from "../firebase";
+import firebase from 'firebase'
 const peer = new Peer(SkywayConfig);
 events.EventEmitter.defaultMaxListeners = 20
 
 let localStream = null;
 let existingCall = null;
+var roomId, firebaseMyId, docId
 
+let constraints = {
+    video: {},
+    audio: true
+};
+constraints.video.width = {
+    min: 320,
+    max: 320
+};
+constraints.video.height = {
+    min: 240,
+    max: 240
+};
+
+function addVideo(stream){
+    const videoDom = $('<video autoplay playsinline>');
+    videoDom.attr('id',stream.peerId);
+    videoDom.get(0).srcObject = stream;
+    $('.videosContainer').append(videoDom);
+}
+
+function removeVideo(peerId){
+    $('#'+peerId).remove();
+}
+
+function removeAllVideo(){
+    $('.videosContainer').empty();
+}
 
 function Skyway() {
-    var roomId
-
     const { history } = useReactRouter();
     const [calling, setCalling] = useState(null)
     const [room, setRoom] = useState("")
 
-    let constraints = {
-        video: {},
-        audio: true
-    };
-    constraints.video.width = {
-        min: 320,
-        max: 320
-    };
-    constraints.video.height = {
-        min: 240,
-        max: 240
-    };
-
     useEffect( ()=> {
-        navigator.mediaDevices.getUserMedia(constraints)
-            .then(function (stream) {
-                // Success
-                localStream = stream;
 
-                setRoom(RoomManager.getRoomId())
-                roomId = RoomManager.getRoomId()
-                console.log(roomId)
-                if(roomId) {
-                    SubmitCall()
+        const fn = async () => {
+                var user = firebase.auth().currentUser;
+
+                if (user) {
+                    // User is signed in.
+                    firebaseMyId = user.uid
+                    console.log(user.uid)
+                } else {
+                    // No user is signed in.
+                    await firebase.auth().signInAnonymously().catch(function(error) {
+                    });
+
+                    await firebase.auth().onAuthStateChanged(function(user) {
+                        if (user) {
+                            firebaseMyId = user.uid
+                            console.log(user.uid)
+                        } else {
+                        }
+                    });
                 }
-            }).catch(function (error) {
-                // Error
-                console.error('mediaDevice.getUserMedia() error:', error);
-                return;
-        });
+
+                await db.collection("matching").where("browserId","==", firebaseMyId).get()
+                    .then(function(docs) {
+                        docs.forEach(function (doc) {
+                            setRoom(doc.data().roomId)
+                            roomId = doc.data().roomId
+                            docId = doc.id
+                        })
+                    })
+                    .catch(function(error) {
+                        // The document probably doesn't exist.
+                        console.error("Error updating document: ", error);
+                    });
+
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(function (stream) {
+                        // Success
+                        localStream = stream;
+                        if (!roomId){
+                            setRoom(RoomManager.getRoomId())
+                            roomId = RoomManager.getRoomId()
+                        }
+                        console.log(roomId)
+                        if(roomId) {
+                            SubmitCall()
+                        }
+                    }).catch(function (error) {
+                    // Error
+                    console.error('mediaDevice.getUserMedia() error:', error);
+                    return;
+                });
+        }
+
+        fn()
     }
     ,[setRoom])
 
@@ -64,9 +118,11 @@ function Skyway() {
     });
 
     peer.on('close', function(){
+        existingCall.close();
     });
 
     peer.on('disconnected', function(){
+        existingCall.close();
     });
 
     function SubmitCall(){
@@ -98,24 +154,14 @@ function Skyway() {
         });
 
         call.on('peerLeave', function(peerId){
-            removeVideo();
+            removeVideo(peerId);
         });
 
         call.on('close', function(){
-            removeVideo();
+            removeAllVideo();
         });
     }
 
-    function addVideo(stream){
-        const videoDom = $('<video autoplay playsinline>');
-        videoDom.attr('id',stream.peerId);
-        videoDom.get(0).srcObject = stream;
-        $('.videosContainer').append(videoDom);
-    }
-
-    function removeVideo(){
-        $('.videosContainer').empty();
-    }
 
     function setupMakeCallUI(){
         setCalling(1);
@@ -165,7 +211,48 @@ function Skyway() {
                             href="#"
                             className="pure-button pure-button-success"
                             type="submit"
-                            onClick={() =>　{existingCall.close();existingCall = null;history.push('/')}}
+                            onClick={async (e) =>　{
+                                e.preventDefault()
+                                existingCall.close();
+                                existingCall = null;
+                                localStream.getTracks().forEach(track => track.stop());
+
+                                console.log(docId)
+
+                                var members = 0
+
+                                await db.collection("matching").doc(docId).get().then(function(doc) {
+                                    members = doc.data().members
+
+                                }).catch(function(error) {
+                                    console.error("Error removing document: ", error);
+                                });
+
+                                var data = {
+                                    members: members-1,
+                                }
+
+                                await db.collection("matching").where("roomId", "==", roomId).get().then(
+                                    function (docs) {
+                                        docs.forEach(function (doc) {
+                                            db.collection("matching").doc(doc.id).update(data)
+                                                .then(function() {
+                                                    console.log("Document successfully updated!");
+                                                })
+                                                .catch(function(error) {
+                                                    // The document probably doesn't exist.
+                                                    console.error("Error updating document: ", error);
+                                                });
+                                        })
+                                    })
+
+                                await db.collection("matching").doc(docId).delete().then(function() {
+                                    console.log("Document successfully deleted!");
+                                }).catch(function(error) {
+                                    console.error("Error removing document: ", error);
+                                });
+                                history.push('/')
+                            }}
                         >
                             End Call
                         </button>
@@ -184,14 +271,11 @@ function Skyway() {
                 {disconnectForm()}
             </div>
             <div id="js-videos-container" className="videos-container">
-                <Video id="my-video" muted="{true}" autoPlay playsinline/>
-                <div id="js-videos-container" className="videosContainer">
-                </div>
+                <div id="js-videos-container" className="videosContainer"/>
             </div>
         </div>
     );
 }
-
 
 const Video = styled.video`
   width: 40%;
