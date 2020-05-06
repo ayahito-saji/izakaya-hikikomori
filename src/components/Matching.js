@@ -182,8 +182,6 @@ function Matching() {
                                 })
                         }
 
-
-
                     }
                 })
         }
@@ -196,7 +194,7 @@ function Matching() {
         if(canConnect){
             return(
                 <Link
-                    to="/waiting"
+                    to="/"
                     style={{
                         marginTop: '100px',
                         color: '#ffffff',
