@@ -97,13 +97,17 @@ function App() {
         }}>
           いつでもどこでも，オンライン飲み会
         </h1>
-        <p style={{
-          color: '#ffffff',
-          marginTop: '50px',
-          width: '100%'
-        }}>
-          ※このサイトで発生した如何なる問題についても対処しかねます<br>《繋がりにくい場合》<br>クッキーと履歴を消してリロードすると改善する場合があります
-        </p>
+          <div style={{
+              color: '#ffffff',
+              marginTop: '50px',
+              width: '100%',
+              textAlign:'center'
+          }}>
+              <p>iOS端末ではSafariブラウザのみ対応しています。</p>
+              <p>※このサイトで発生した如何なる問題についても対処しかねます</p>
+              <p>《繋がりにくい場合》</p>
+              <p>クッキーと履歴を消してリロードすると改善する場合があります</p>
+          </div>
       </div>
       <div style={{
         position: 'absolute',
